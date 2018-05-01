@@ -1,0 +1,65 @@
+import base64js from "base64-js"
+
+export async function readFileContent(file: Blob): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event: any) => {
+        const arr = new Uint8Array(event.target.result);
+        const encoded = base64js.fromByteArray(arr)
+        resolve(encoded);
+      };
+      reader.readAsArrayBuffer(file);
+  });
+}
+export async function pushAddon(
+    repo: any,
+    headSha: string,
+    destDir: string,
+    files: {path: string, blob: Blob}[],
+    message: string) {
+
+  const baseTree = await repo.git.trees(headSha).fetch()
+
+  // Remove existing files 
+  baseTree.tree = baseTree.tree.filter(x => x.path !== destDir)
+
+  // Add new file
+  for (const file of files) {
+    const content = await readFileContent(file.blob)
+    const blob = await repo.git.blobs.create({content: content, encoding: "base64"})
+    console.log(blob)
+    baseTree.tree.push({
+        path: `${destDir}/${file.path}`,
+        mode: '100644',
+        type: 'blob',
+        sha: blob.sha
+    })
+  }
+
+  console.log(baseTree)
+
+  // Create new tree
+  const tree = await repo.git.trees.create({ tree: baseTree.tree })
+  
+  // Commit
+  const commit = await repo.git.commits.create({
+      message: message,
+      tree: tree.sha,
+      parents: [
+        headSha
+      ]
+  });
+
+  const targetRef = `refs/heads/${destDir}`;
+  
+  const newHead = await repo.git.refs.create({ ref: targetRef, sha: commit.sha })
+    .catch(err => {
+      return repo.git(targetRef).update({
+        sha: commit.sha,
+        force: true,
+      })
+    });
+  
+  console.log(newHead)
+  return newHead
+}
