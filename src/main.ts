@@ -1,10 +1,8 @@
 import Vue from 'vue'
-import Vuetify from 'vuetify'
+import Buefy from 'buefy'
 import App from './App.vue'
 
-import 'vuetify/dist/vuetify.min.css'
-
-Vue.use(Vuetify)
+Vue.use(Buefy);
 
 new Vue({
   el: '#app',

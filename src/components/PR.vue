@@ -1,56 +1,71 @@
 <template>
-  <v-card>
-    <v-alert v-if="error != null" :value="true" type="error">
-        {{error.stack}}
-      </v-alert>
-    <v-card-text>
-      <v-form>
-        <v-text-field label="Access token" :type="showToken ? 'text' : 'password'"
-            :append-icon="showToken ? 'visibility' : 'visibility_off'"
-            :append-icon-cb="() => (showToken = !showToken)"
-            v-model="token"
-            @change="onTokenChanged"></v-text-field>
-        <p v-if="username">Currently logged in as {{username}}</p>
+  <div>
+    <b-message v-if="error != null" type="is-danger">
+      <p><strong>Error</strong></p>
+      <p>{{error.stack}}</p>
+    </b-message>
 
-        <v-select label="Repository" :items="availableRepos" v-model="repo" @change="updateHeads"></v-select>
+    <div>
+      <form novalidate @submit.prevent>
+        <div class="field">
+          <label class="label">Access token</label>
+          <b-input type="password" password-reveal v-model="token" 
+              @change.native="onTokenChanged($event.target.value)"></b-input>
+        </div>
+  
+        <div class="field">
+          <p v-if="username">Currently logged in as <strong>{{username}}</strong></p>
+        </div>
 
-        <v-select label="Branch" :disabled="!repo" :items="availableHeads" item-text="branch" v-model="head"></v-select>
-        
-        <v-text-field v-model="addonId" label="Add-on ID"></v-text-field>
+        <b-field label="Repository">
+          <b-select v-model="repo" @input="updateHeads">
+            <option v-for="item in availableRepos" :key="item" :value="item">{{item}}</option>
+          </b-select>
+        </b-field>
 
-        <div class="pb-4">
-          <label class="btn" >
-            <div class="btn__content">
-            <input type="file" style="display: none;"
+        <b-field label="Branch">
+          <b-select :disabled="!repo" v-model="head">
+            <option v-for="item in availableHeads" :key="item.sha" :value="item">{{item.branch}}</option>
+          </b-select>
+        </b-field>
+
+        <b-field label="Add-on ID">
+          <b-input type="text" v-model="addonId"></b-input>
+        </b-field>
+
+        <div class="file">
+          <label class="file-label">
+            <input type="file" class="file-input" 
                 @change="directorySelected($event)"
                 multiple directory webkitdirectory mozdirectory>
-              Select files
-            </div>
+            <span class="file-cta">
+              <span class="file-icon">
+                 <b-icon icon="upload"/>
+              </span>
+              <span class="file-label">
+                Select files…
+              </span>
+            </span>
           </label>
         </div>
+
         <div>
-          <v-data-table
-              :headers="[{ text: 'File', align: 'left', sortable: true, value: 'path'}]"
-              :items="files" :must-sort="true" class="elevation-1">
-            <template slot="items" slot-scope="data">
-              <td class="text-xs-left">{{ data.item.path }}</td>
-            </template>
-          </v-data-table>
+          <b-table striped paginated :per-page="10" default-sort="path" :data="files" 
+                   :columns="[{ field: 'path', label: 'File', sortable: true}]"></b-table>
         </div>
-      </v-form>
-    </v-card-text>
-    <v-card-actions>
-      <v-btn color="primary" @click="push" :loading="uploadState === 'uploading'"
-          :disabled="uploadState === 'uploading' || !repo || !head">Push</v-btn>
+      </form>
+    </div>
+    <div class="buttons">
+      <button class="button is-primary" @click="push"
+          :class="{'is-loading': uploadState === 'uploading'}"
+          :disabled="uploadState === 'uploading' || !repo || !head">Push</button>
 
-      <v-btn :disabled="!(uploadState == 'done')" @click=openPR>
+      <button class="button is-success" :disabled="!(uploadState == 'done')" @click="openPR">
         Create pull request
-      </v-btn>
-
-    </v-card-actions>
-  </v-card>
+      </button>
+    </div>
+  </div>
 </template>
-<style></style>
 <script lang="ts">
 import Vue from 'vue';
 import * as Octokat from 'octokat'
