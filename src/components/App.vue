@@ -27,11 +27,11 @@
 </style>
 <script lang="ts">
 import Vue from 'vue';
-import PRComponent from './components/PR.vue';
+import PR from './PR.vue';
 
 export default Vue.extend({
   components: {
-    'pr': PRComponent,
+    'pr': PR,
   },
 });
 </script>
