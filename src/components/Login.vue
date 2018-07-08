@@ -7,7 +7,8 @@
           <form  @submit.prevent="login">
             <b-field>
               <p>To use this application you need to
-                <a href="https://blog.github.com/2013-05-16-personal-api-tokens/">create a personal API token</a> with the <span class="is-italic">public_repo</span> scope.
+                <a href="https://github.com/settings/tokens" target="_blank">create a personal API token</a>
+                with the <span class="is-italic">public_repo</span> scope.
               </p>
             </b-field>
             <b-field label="Access token"
