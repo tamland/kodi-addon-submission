@@ -136,7 +136,7 @@ export default Vue.extend({
       window.open(url, "_blank");
     },
     push() {
-      const commitMessage = `[${this.addonId}] update`
+      const commitMessage = `[${this.addonId}] ${this.addonVersion}`
       const repo = this.octo.repos(this.username, this.repo);
 
       this.error = null;
