@@ -1,10 +1,25 @@
 <template>
   <div id="app">
-    <section id="app-content" class="section">
+    <div id="app-content">
+      <nav v-if="isLoggedIn" class="navbar is-transparent has-shadow">
+        <div class="container">
+          <div class="navbar-end">
+            <div class="navbar-item">
+              {{username}}
+            </div>
+            <div class="navbar-item">
+              <button class="button" @click="logout">Log out</button>
+            </div>
+          </div>
+        </div>
+      </nav>
       <div class="container">
-        <pr></pr>
+        <section class="section">
+          <dashboard v-if="isLoggedIn"/>
+          <login v-else/>
+        </section>
       </div>
-    </section>
+    </div>
     <footer class="footer">
       <div class="content has-text-centered">
         This website is licensed <a href="https://www.gnu.org/licenses/agpl-3.0.en.html">GNU Affero General Public License</a>.
@@ -27,11 +42,24 @@
 </style>
 <script lang="ts">
 import Vue from 'vue';
-import PR from './PR.vue';
+import Login from './Login.vue';
+import Dashboard from './Dashboard.vue';
+import { MUTATIONS } from "@/shared/store";
+import { mapGetters, mapState, mapMutations } from 'vuex';
 
 export default Vue.extend({
   components: {
-    'pr': PR,
+    Login,
+    Dashboard,
   },
+  computed: {
+    ...mapGetters(["isLoggedIn"]),
+    ...mapState(["username"]),
+  },
+  methods: {
+    ...mapMutations({
+      logout: MUTATIONS.LOGOUT
+    })
+  }
 });
 </script>

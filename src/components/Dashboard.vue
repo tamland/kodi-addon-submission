@@ -7,16 +7,6 @@
 
     <div>
       <form novalidate @submit.prevent>
-        <div class="field">
-          <label class="label">Access token</label>
-          <b-input type="password" password-reveal v-model="token" 
-              @change.native="onTokenChanged($event.target.value)"></b-input>
-        </div>
-  
-        <div class="field">
-          <p v-if="username">Currently logged in as <strong>{{username}}</strong></p>
-        </div>
-
         <b-field label="Repository">
           <b-select v-model="repo" @input="updateHeads">
             <option v-for="item in availableRepos" :key="item" :value="item">{{item}}</option>
@@ -68,30 +58,22 @@
 </template>
 <script lang="ts">
 import Vue from 'vue';
-import * as Octokat from 'octokat'
 import {pushAddon, readFileContent} from '../shared/utils';
 
 export default Vue.extend({
   data() {
     return {
-      token: "",
-      showToken: false,
       availableRepos: [] as string[],
       availableHeads: [] as null | any[],
-      username: "" as string,
       repo: "" as string,
       head: null as any,
       addonId: "",
       files: [] as {path: string, blob: Blob}[],
-      octo: Octokat,        
       uploadState: "",
       error: null as any,
     }
   },
   created() {
-    this.token = localStorage.getItem("token") || ""
-    this.onTokenChanged(this.token)
-
     this.availableRepos = [
       "repo-plugins",
       "repo-resources",
@@ -101,25 +83,17 @@ export default Vue.extend({
       "repo-webinterfaces",
     ]
   },
+  computed: {
+    octo(): any {
+      return this.$store.state.octo;
+    },
+    username(): string {
+      return this.$store.state.username;
+    },
+  },
   methods: {
     clearErrors() {
       this.error = null;
-    },
-    onTokenChanged(token: string) {
-      localStorage.setItem("token", token);
-      this.error = null;
-      this.username = "";
-      this.octo = new Octokat({token: token})
-      if (!token) {
-        return;
-      }
-      this.octo.user.fetch()
-        .then((result: any) => {
-          this.username = result.login;
-        })
-        .catch((error: Error) => {
-          this.error = error;
-        })
     },
     updateHeads(repo: string) {
       this.error = null;
