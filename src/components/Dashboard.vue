@@ -2,27 +2,11 @@
   <div>
     <b-message v-if="error != null" type="is-danger">
       <p><strong>Error</strong></p>
-      <p>{{error.stack}}</p>
+      <p v-if="error.message">{{error.message}}<br>{{error.stack}}</p>
+      <p v-else>{{error}}</p>
     </b-message>
-
-    <div>
-      <form novalidate @submit.prevent>
-        <b-field label="Repository">
-          <b-select v-model="repo" @input="updateHeads">
-            <option v-for="item in availableRepos" :key="item" :value="item">{{item}}</option>
-          </b-select>
-        </b-field>
-
-        <b-field label="Branch">
-          <b-select :disabled="!repo" v-model="head">
-            <option v-for="item in availableHeads" :key="item.sha" :value="item">{{item.branch}}</option>
-          </b-select>
-        </b-field>
-
-        <b-field label="Add-on ID">
-          <b-input type="text" v-model="addonId"></b-input>
-        </b-field>
-
+    <form novalidate @submit.prevent>
+      <b-field label="Upload files">
         <div class="file">
           <label class="file-label">
             <input type="file" class="file-input" 
@@ -30,35 +14,53 @@
                 multiple directory webkitdirectory mozdirectory>
             <span class="file-cta">
               <span class="file-icon">
-                 <b-icon icon="upload"/>
+                <b-icon icon="upload"/>
               </span>
               <span class="file-label">
-                Select files…
+                Select directory…
               </span>
             </span>
           </label>
         </div>
+      </b-field>
 
-        <div>
-          <b-table striped paginated :per-page="10" default-sort="path" :data="files" 
-                   :columns="[{ field: 'path', label: 'File', sortable: true}]"></b-table>
-        </div>
-      </form>
-    </div>
-    <div class="buttons">
-      <button class="button is-primary" @click="push"
-          :class="{'is-loading': uploadState === 'uploading'}"
-          :disabled="uploadState === 'uploading' || !repo || !head">Push</button>
+      <b-field label="Add-on ID">
+        {{addonId || "-"}}
+      </b-field>
 
-      <button class="button is-success" :disabled="!(uploadState == 'done')" @click="openPR">
-        Create pull request
-      </button>
-    </div>
+      <b-field label="Version">
+        {{addonVersion || "-"}}
+      </b-field>
+
+      <b-table striped paginated :per-page="10" default-sort="path" :data="files"
+          :columns="[{ field: 'path', label: 'File', sortable: true}]"></b-table>
+
+      <b-field label="Repository">
+        <b-select v-model="repo" @input="updateHeads">
+          <option v-for="item in availableRepos" :key="item" :value="item">{{item}}</option>
+        </b-select>
+      </b-field>
+
+      <b-field label="Branch">
+        <b-select :disabled="!repo" v-model="head">
+          <option v-for="item in availableHeads" :key="item.sha" :value="item">{{item.branch}}</option>
+        </b-select>
+      </b-field>
+
+      <div class="buttons">
+        <button class="button is-primary" @click="push"
+            :class="{'is-loading': uploadState === 'uploading'}"
+            :disabled="uploadState === 'uploading' || !repo || !head || !addonId">Push</button>
+        <button class="button is-success" :disabled="!(uploadState == 'done')" @click="openPR">
+          Create pull request
+        </button>
+      </div>
+    </form>
   </div>
 </template>
 <script lang="ts">
 import Vue from 'vue';
-import {pushAddon, readFileContent} from '../shared/utils';
+import {pushAddon, readFileContent, readAddonInfo} from '../shared/utils';
 
 export default Vue.extend({
   data() {
@@ -68,6 +70,7 @@ export default Vue.extend({
       repo: "" as string,
       head: null as any,
       addonId: "",
+      addonVersion: "",
       files: [] as {path: string, blob: Blob}[],
       uploadState: "",
       error: null as any,
@@ -108,16 +111,25 @@ export default Vue.extend({
         })
         .catch((error: Error) => { this.error = error} )
     },
-    async directorySelected(event: any) {
-      console.log(event.target.files)
-
-      const files: File[] = Array.from(event.target.files)
-      this.files = files.map((file: File) => {
-        return {
-          path: file.webkitRelativePath.substring(file.webkitRelativePath.indexOf("/") + 1),
-          blob: file
-        }})
-        .filter(x => !x.path.startsWith(".git/"))
+    directorySelected(event: any) {
+      this.error = null;
+      const files: File[] = Array.from(event.target.files);
+      const addonXml = files.find((file: File) => file.name === "addon.xml");
+      if (!addonXml) {
+        this.error = "Could not find addon.xml. Did you select the correct folder?";
+        return;
+      }
+      readAddonInfo(addonXml).then((info) => {
+        this.addonId = info.id;
+        this.addonVersion = info.version;
+        this.files = files
+          .map((file: File) => ({
+            path: file.webkitRelativePath.substring(file.webkitRelativePath.indexOf("/") + 1),
+            blob: file
+          }))
+          .filter(x => !x.path.startsWith(".git/"))
+      })
+      .catch(err => {this.error = err});
     },
     openPR() {
       const url = `https://github.com/xbmc/${this.repo}/compare/${this.head.branch}...${this.username}:${this.addonId}`

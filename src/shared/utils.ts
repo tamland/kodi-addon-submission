@@ -11,6 +11,31 @@ export async function readFileContent(file: Blob): Promise<string> {
       reader.readAsArrayBuffer(file);
   });
 }
+
+export interface AddonInfo {
+  id: string;
+  version: string;
+}
+
+export async function readAddonInfo(file: Blob): Promise<AddonInfo> {
+  return new Promise<AddonInfo>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (event: any) => {
+      try {
+        const parser = new DOMParser();
+        var xmlDoc = parser.parseFromString(event.target.result, "text/xml");
+        const addonElem = xmlDoc.getElementsByTagName("addon")[0];
+        const id = addonElem.getAttribute("id") || "";
+        const version = addonElem.getAttribute("version") || "";
+        resolve({id, version});
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.readAsText(file);
+  });
+}
+
 export async function pushAddon(
     repo: any,
     headSha: string,
