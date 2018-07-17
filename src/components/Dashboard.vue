@@ -47,6 +47,10 @@
         </b-select>
       </b-field>
 
+      <b-field v-if="progressMessage" class="has-text-grey">
+        {{progressMessage}}
+      </b-field>
+
       <div class="buttons">
         <button :class="['button', 'is-primary', {'is-loading': uploadState === 'uploading'}]"
             :disabled="!canPush" @click="push">
@@ -75,6 +79,7 @@ export default Vue.extend({
       files: [] as {path: string, blob: Blob}[],
       uploadState: "",
       error: null as any,
+      progressMessage: "" as string,
     }
   },
   created() {
@@ -142,16 +147,21 @@ export default Vue.extend({
     push() {
       const commitMessage = `[${this.addonId}] ${this.addonVersion}`
       const repo = this.octo.repos(this.username, this.repo);
+      const progressCallback = (message: string) => {
+        this.progressMessage = message;
+      };
 
       this.error = null;
       this.uploadState = 'uploading'
-      pushAddon(repo, this.head.sha, this.addonId, this.files, commitMessage)
+      pushAddon(repo, this.head.sha, this.addonId, this.files, commitMessage, progressCallback)
         .then((result: any) => {
-          this.uploadState = 'done'
+          this.uploadState = 'done';
+          this.progressMessage = "";
         })
         .catch((err: any) => {
-          this.error = err
-          this.uploadState = ""
+          this.error = err;
+          this.uploadState = "";
+          this.progressMessage = "";
         });
     }
   },

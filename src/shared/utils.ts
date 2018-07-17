@@ -41,7 +41,9 @@ export async function pushAddon(
     headSha: string,
     destDir: string,
     files: {path: string, blob: Blob}[],
-    message: string) {
+    message: string,
+    progressCallback: (message: string) => void = () => {},
+  ) {
 
   const baseTree = await repo.git.trees(headSha).fetch()
 
@@ -50,9 +52,9 @@ export async function pushAddon(
 
   // Add new file
   for (const file of files) {
+    progressCallback(`Uploading ${file.path} ...`);
     const content = await readFileContent(file.blob)
     const blob = await repo.git.blobs.create({content: content, encoding: "base64"})
-    console.log(blob)
     baseTree.tree.push({
         path: `${destDir}/${file.path}`,
         mode: '100644',
