@@ -48,9 +48,10 @@
       </b-field>
 
       <div class="buttons">
-        <button class="button is-primary" @click="push"
-            :class="{'is-loading': uploadState === 'uploading'}"
-            :disabled="uploadState === 'uploading' || !repo || !head || !addonId">Push</button>
+        <button :class="['button', 'is-primary', {'is-loading': uploadState === 'uploading'}]"
+            :disabled="!canPush" @click="push">
+          Push
+        </button>
         <button class="button is-success" :disabled="!(uploadState == 'done')" @click="openPR">
           Create pull request
         </button>
@@ -93,6 +94,9 @@ export default Vue.extend({
     username(): string {
       return this.$store.state.username;
     },
+    canPush(): boolean {
+      return !!this.repo && !!this.head && !!this.addonId && this.uploadState !== 'uploading';
+    }
   },
   methods: {
     clearErrors() {
