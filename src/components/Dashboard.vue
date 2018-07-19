@@ -49,6 +49,7 @@
 
       <b-field v-if="progressMessage" class="has-text-grey">
         {{progressMessage}}
+        <progress class="progress is-info" :value="progress" :max="files.length + 1"></progress>
       </b-field>
 
       <div class="buttons">
@@ -79,6 +80,7 @@ export default Vue.extend({
       files: [] as {path: string, blob: Blob}[],
       uploadState: "",
       error: null as any,
+      progress: 0 as number,
       progressMessage: "" as string,
     }
   },
@@ -148,6 +150,7 @@ export default Vue.extend({
       const commitMessage = `[${this.addonId}] ${this.addonVersion}`
       const repo = this.octo.repos(this.username, this.repo);
       const progressCallback = (message: string) => {
+        this.progress += 1.
         this.progressMessage = message;
       };
 
@@ -156,11 +159,13 @@ export default Vue.extend({
       pushAddon(repo, this.head.sha, this.addonId, this.files, commitMessage, progressCallback)
         .then((result: any) => {
           this.uploadState = 'done';
-          this.progressMessage = "";
         })
         .catch((err: any) => {
           this.error = err;
           this.uploadState = "";
+        })
+        .then(() => {
+          this.progress = 0;
           this.progressMessage = "";
         });
     }
