@@ -1,10 +1,5 @@
 <template>
   <div>
-    <b-message v-if="error != null" type="is-danger">
-      <p><strong>Error</strong></p>
-      <p v-if="error.message">{{error.message}}<br>{{error.stack}}</p>
-      <p v-else>{{error}}</p>
-    </b-message>
     <form novalidate @submit.prevent>
       <b-field label="Upload files">
         <div class="file">
@@ -80,7 +75,6 @@ export default Vue.extend({
       addonVersion: "" as string,
       files: [] as {path: string, blob: Blob}[],
       uploadState: "",
-      error: null as any,
       progress: 0 as number,
       progressMessage: "" as string,
     }
@@ -98,11 +92,11 @@ export default Vue.extend({
   },
   methods: {
     onDirectorySelected(event: any) {
-      this.error = null;
+      this.$store.commit(MUTATIONS.CLEAR_ERROR);
       const files: File[] = Array.from(event.target.files);
       const addonXml = files.find((file: File) => file.name === "addon.xml");
       if (!addonXml) {
-        this.error = "Could not find addon.xml. Did you select the correct folder?";
+        this.$store.commit(MUTATIONS.SET_ERROR, "Could not find addon.xml. Did you select the correct folder?");
         return;
       }
       readAddonInfo(addonXml).then((info) => {
@@ -115,19 +109,16 @@ export default Vue.extend({
           }))
           .filter(x => !x.path.startsWith(".git/"))
       })
-      .catch(err => {this.error = err});
+      .catch(err => {
+        this.$store.commit(MUTATIONS.SET_ERROR, err);
+      });
     },
     onRepoSelected(repo: string) {
-      this.error = null;
       this.branch = null;
       this.branches = []
-      this.$store.dispatch(ACTIONS.FETCH_BRANCH_INFO, repo)
-        .then((branches: Branch[]) => {
-          this.branches = branches
-        })
-        .catch((error: Error) => {
-          this.error = error
-        })
+      this.$store.dispatch(ACTIONS.FETCH_BRANCH_INFO, repo).then((branches: Branch[]) => {
+        this.branches = branches
+      })
     },
     openPR() {
       if (!this.branch) {
@@ -146,7 +137,7 @@ export default Vue.extend({
         this.progressMessage = message;
       };
 
-      this.error = null;
+      this.$store.commit(MUTATIONS.CLEAR_ERROR);
       this.uploadState = 'uploading'
       const payload = {
         destRepo: this.repo,
@@ -161,7 +152,6 @@ export default Vue.extend({
           this.uploadState = 'done';
         })
         .catch((err: any) => {
-          this.error = err;
           this.uploadState = "";
         })
         .then(() => {

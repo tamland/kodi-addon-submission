@@ -5,7 +5,6 @@
         <div class="content">
           <h1 class="title has-text-weight-light">Sign in to continue…</h1>
           <p>To use this application sign in with GitHub.</p>
-          <p v-if="error" class="has-text-danger">Error</p>
         </div>
         <button type="button" :class="['button','is-primary', 'is-outlined', {'is-loading': loading}]"
             @click="requestToken">
@@ -23,7 +22,6 @@ import { MUTATIONS, ACTIONS } from "@/shared/store";
 export default Vue.extend({
   data() {
     return {
-      error: false,
       loading: false,
     }
   },
@@ -36,16 +34,12 @@ export default Vue.extend({
         .then(() => {
           this.login();
         })
-        .catch((error: Error) => {
-          this.error = true;
-        })
     },
     login() {
+      this.$store.commit(MUTATIONS.CLEAR_ERROR);
       this.loading = true;
       this.$store.dispatch(ACTIONS.LOGIN)
-        .catch((error: Error) => {
-          console.log(error)
-        })
+        .catch(() => {})
         .then(() => {
           this.loading = false;
         })

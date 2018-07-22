@@ -15,6 +15,11 @@
       </nav>
       <div class="container">
         <section class="section">
+          <b-message v-if="error != null" type="is-danger">
+            <p><strong>Error</strong></p>
+            <p v-if="error.message">{{error.message}}<br>{{error.stack}}</p>
+            <p v-else>{{error}}</p>
+          </b-message>
           <dashboard v-if="isLoggedIn"/>
           <login v-else/>
         </section>
@@ -54,7 +59,7 @@ export default Vue.extend({
   },
   computed: {
     ...mapGetters(["isLoggedIn"]),
-    ...mapState(["username"]),
+    ...mapState(["username", "error"]),
   },
   methods: {
     ...mapMutations({
