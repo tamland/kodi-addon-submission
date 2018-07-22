@@ -10,7 +10,7 @@
         <div class="file">
           <label class="file-label">
             <input type="file" class="file-input" 
-                @change="directorySelected($event)"
+                @change="onDirectorySelected($event)"
                 multiple directory webkitdirectory mozdirectory>
             <span class="file-cta">
               <span class="file-icon">
@@ -36,14 +36,14 @@
           :columns="[{ field: 'path', label: 'File', sortable: true}]"></b-table>
 
       <b-field label="Repository">
-        <b-select v-model="repo" @input="updateHeads">
-          <option v-for="item in availableRepos" :key="item" :value="item">{{item}}</option>
+        <b-select v-model="repo" @input="onRepoSelected">
+          <option v-for="item in destinationRepos" :key="item" :value="item">{{item}}</option>
         </b-select>
       </b-field>
 
       <b-field label="Branch">
-        <b-select :disabled="!repo" v-model="head">
-          <option v-for="item in availableHeads" :key="item.sha" :value="item">{{item.branch}}</option>
+        <b-select :disabled="!repo" v-model="branch">
+          <option v-for="item in branches" :key="item.name" :value="item">{{item.name}}</option>
         </b-select>
       </b-field>
 
@@ -66,17 +66,18 @@
 </template>
 <script lang="ts">
 import Vue from 'vue';
+import { mapState } from 'vuex';
 import {pushAddon, readFileContent, readAddonInfo} from '../shared/utils';
+import { MUTATIONS, ACTIONS, Branch } from "@/shared/store";
 
 export default Vue.extend({
   data() {
     return {
-      availableRepos: [] as string[],
-      availableHeads: [] as null | any[],
+      branches: [] as Branch[],
       repo: "" as string,
-      head: null as any,
-      addonId: "",
-      addonVersion: "",
+      branch: null as null | Branch,
+      addonId: "" as string,
+      addonVersion: "" as string,
       files: [] as {path: string, blob: Blob}[],
       uploadState: "",
       error: null as any,
@@ -85,44 +86,18 @@ export default Vue.extend({
     }
   },
   created() {
-    this.availableRepos = [
-      "repo-plugins",
-      "repo-resources",
-      "repo-scrapers",
-      "repo-scripts",
-      "repo-skins",
-      "repo-webinterfaces",
-    ]
   },
   computed: {
-    octo(): any {
-      return this.$store.state.octo;
-    },
+    ...mapState(['destinationRepos']),
     username(): string {
       return this.$store.state.username;
     },
     canPush(): boolean {
-      return !!this.repo && !!this.head && !!this.addonId && this.uploadState !== 'uploading';
+      return !!this.repo && !!this.branch && !!this.addonId && this.uploadState !== 'uploading';
     }
   },
   methods: {
-    clearErrors() {
-      this.error = null;
-    },
-    updateHeads(repo: string) {
-      this.error = null;
-      this.head = null;
-      this.availableHeads = []
-      this.octo.repos('xbmc', repo).git.refs.heads.fetch()
-        .then((result: any) => {
-          this.availableHeads = result.items.map((ref: any) => {
-            const branch = ref.ref.split("/").reverse()[0];
-            return {branch: branch, sha: ref.object.sha}
-          });
-        })
-        .catch((error: Error) => { this.error = error} )
-    },
-    directorySelected(event: any) {
+    onDirectorySelected(event: any) {
       this.error = null;
       const files: File[] = Array.from(event.target.files);
       const addonXml = files.find((file: File) => file.name === "addon.xml");
@@ -142,13 +117,30 @@ export default Vue.extend({
       })
       .catch(err => {this.error = err});
     },
+    onRepoSelected(repo: string) {
+      this.error = null;
+      this.branch = null;
+      this.branches = []
+      this.$store.dispatch(ACTIONS.FETCH_BRANCH_INFO, repo)
+        .then((branches: Branch[]) => {
+          this.branches = branches
+        })
+        .catch((error: Error) => {
+          this.error = error
+        })
+    },
     openPR() {
-      const url = `https://github.com/xbmc/${this.repo}/compare/${this.head.branch}...${this.username}:${this.addonId}`
+      if (!this.branch) {
+        return;
+      }
+      const url = `https://github.com/xbmc/${this.repo}/compare/${this.branch.name}...${this.username}:${this.addonId}`
       window.open(url, "_blank");
     },
     push() {
+      if (!this.branch) {
+        return;
+      }
       const commitMessage = `[${this.addonId}] ${this.addonVersion}`
-      const repo = this.octo.repos(this.username, this.repo);
       const progressCallback = (message: string) => {
         this.progress += 1.
         this.progressMessage = message;
@@ -156,7 +148,15 @@ export default Vue.extend({
 
       this.error = null;
       this.uploadState = 'uploading'
-      pushAddon(repo, this.head.sha, this.addonId, this.files, commitMessage, progressCallback)
+      const payload = {
+        destRepo: this.repo,
+        destBranch: this.branch,
+        addonId: this.addonId,
+        files: this.files,
+        commitMessage,
+        progressCallback,
+      }
+      this.$store.dispatch(ACTIONS.PUSH, payload)
         .then((result: any) => {
           this.uploadState = 'done';
         })

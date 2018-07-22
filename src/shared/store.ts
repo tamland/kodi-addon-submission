@@ -3,6 +3,7 @@ import Vuex, { StoreOptions, ActionContext, GetterTree } from 'vuex'
 import Authenticator from "netlify-auth-providers";
 import * as Octokat from 'octokat';
 import {config} from "./config";
+import {pushAddon} from './utils';
 
 Vue.use(Vuex);
 
@@ -15,6 +16,13 @@ export enum MUTATIONS {
 export enum ACTIONS {
   LOGIN = "LOGIN",
   REQUEST_TOKEN = "REQUEST_TOKEN",
+  FETCH_BRANCH_INFO = "FETCH_BRANCH_INFO",
+  PUSH = "PUSH",
+}
+
+export interface Branch {
+  name: string;
+  headSha: string;
 }
 
 const state = (() => {
@@ -23,6 +31,14 @@ const state = (() => {
     token: token as string,
     username: "" as string,
     octo: token ? new Octokat({token: token}) : null,
+    destinationRepos: [
+      "repo-plugins",
+      "repo-resources",
+      "repo-scrapers",
+      "repo-scripts",
+      "repo-skins",
+      "repo-webinterfaces",
+    ],
   }})();
 
 type State = typeof state;
@@ -67,7 +83,27 @@ const actions = {
       });
     });
     context.commit(MUTATIONS.SET_TOKEN, token);
-  }
+  },
+
+  async [ACTIONS.FETCH_BRANCH_INFO](context: Context, repo: string) {
+    const result = await context.state.octo.repos('xbmc', repo).git.refs.heads.fetch()
+    const branches = result.items.map((ref: any): Branch => {
+      const branch = ref.ref.split("/").reverse()[0];
+      return {name: branch, headSha: ref.object.sha}
+    });
+    return branches;
+  },
+
+  [ACTIONS.PUSH](context: Context, {destRepo, destBranch, addonId, files, commitMessage, progressCallback}: any) {
+    return pushAddon(
+      context.state.octo.repos(context.state.username, destRepo),
+      destBranch.headSha,
+      addonId,
+      files,
+      commitMessage,
+      progressCallback
+    );
+  },
 }
 
 const getters: GetterTree<State, {}> = {
