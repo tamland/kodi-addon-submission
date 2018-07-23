@@ -20,8 +20,8 @@
             <p v-if="error.message">{{error.message}}<br>{{error.stack}}</p>
             <p v-else>{{error}}</p>
           </b-message>
-          <dashboard v-if="isLoggedIn"/>
-          <login v-else/>
+          <login v-if="!isLoggedIn"/>
+          <router-view v-else/>
         </section>
       </div>
     </div>
@@ -48,14 +48,12 @@
 <script lang="ts">
 import Vue from 'vue';
 import Login from './Login.vue';
-import Dashboard from './Dashboard.vue';
 import { MUTATIONS } from "@/shared/store";
 import { mapGetters, mapState, mapMutations } from 'vuex';
 
 export default Vue.extend({
   components: {
     Login,
-    Dashboard,
   },
   computed: {
     ...mapGetters(["isLoggedIn"]),
