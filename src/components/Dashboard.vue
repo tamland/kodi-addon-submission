@@ -62,7 +62,7 @@
 <script lang="ts">
 import Vue from 'vue';
 import { mapState } from 'vuex';
-import {pushAddon, readFileContent, readAddonInfo} from '../shared/utils';
+import {pushAddon, readAddonInfo, loadDirectory, LocalFile} from '../shared/utils';
 import { MUTATIONS, ACTIONS, Branch } from "@/shared/store";
 
 export default Vue.extend({
@@ -73,7 +73,7 @@ export default Vue.extend({
       branch: null as null | Branch,
       addonId: "" as string,
       addonVersion: "" as string,
-      files: [] as {path: string, blob: Blob}[],
+      files: [] as LocalFile[],
       uploadState: "",
       progress: 0 as number,
       progressMessage: "" as string,
@@ -91,27 +91,17 @@ export default Vue.extend({
     }
   },
   methods: {
-    onDirectorySelected(event: any) {
+    async onDirectorySelected(event: any) {
       this.$store.commit(MUTATIONS.CLEAR_ERROR);
-      const files: File[] = Array.from(event.target.files);
-      const addonXml = files.find((file: File) => file.name === "addon.xml");
-      if (!addonXml) {
-        this.$store.commit(MUTATIONS.SET_ERROR, "Could not find addon.xml. Did you select the correct folder?");
-        return;
-      }
-      readAddonInfo(addonXml).then((info) => {
+      try {
+        const files = loadDirectory(event.target.files);
+        const info = await readAddonInfo(files);
         this.addonId = info.id;
         this.addonVersion = info.version;
-        this.files = files
-          .map((file: File) => ({
-            path: file.webkitRelativePath.substring(file.webkitRelativePath.indexOf("/") + 1),
-            blob: file
-          }))
-          .filter(x => !x.path.startsWith(".git/"))
-      })
-      .catch(err => {
+        this.files = files;
+      } catch (err) {
         this.$store.commit(MUTATIONS.SET_ERROR, err);
-      });
+      }
     },
     onRepoSelected(repo: string) {
       this.branch = null;
