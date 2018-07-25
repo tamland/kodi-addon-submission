@@ -1,8 +1,12 @@
 <template>
   <div id="app">
     <div id="app-content">
-      <nav v-if="isLoggedIn" class="navbar is-transparent has-shadow">
+      <nav v-if="isLoggedIn" class="navbar has-shadow">
         <div class="container">
+          <div class="navbar-start">
+            <router-link :to="{name: 'submit-local'}" class="navbar-item">Local</router-link>
+            <router-link :to="{name: 'repo-list'}" class="navbar-item">Repositories</router-link>
+          </div>
           <div class="navbar-end">
             <div class="navbar-item">
               {{username}}

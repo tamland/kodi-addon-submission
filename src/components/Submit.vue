@@ -1,24 +1,7 @@
 <template>
   <div>
-    <form novalidate @submit.prevent>
-      <b-field label="Upload files">
-        <div class="file">
-          <label class="file-label">
-            <input type="file" class="file-input" 
-                @change="onDirectorySelected($event)"
-                multiple directory webkitdirectory mozdirectory>
-            <span class="file-cta">
-              <span class="file-icon">
-                <b-icon icon="upload"/>
-              </span>
-              <span class="file-label">
-                Select directory…
-              </span>
-            </span>
-          </label>
-        </div>
-      </b-field>
-
+    <b-loading :active="loading" :is-full-page="false"></b-loading>
+    <form novalidate @submit.prevent v-if="addonId">
       <b-field label="Add-on ID">
         {{addonId || "-"}}
       </b-field>
@@ -66,6 +49,7 @@ import {pushAddon, readAddonInfo, loadDirectory, LocalFile} from '../shared/util
 import { MUTATIONS, ACTIONS, Branch } from "@/shared/store";
 
 export default Vue.extend({
+  props: ['files'],
   data() {
     return {
       branches: [] as Branch[],
@@ -73,13 +57,31 @@ export default Vue.extend({
       branch: null as null | Branch,
       addonId: "" as string,
       addonVersion: "" as string,
-      files: [] as LocalFile[],
+      loading: true as boolean,
       uploadState: "",
       progress: 0 as number,
       progressMessage: "" as string,
     }
   },
-  created() {
+  watch: {
+    files: {
+      immediate: true,
+      handler(newValue: any, oldValue: any) {
+        console.log("Reading addon.xml");
+        this.loading = true;
+        readAddonInfo(newValue)
+          .then((info) => {
+            this.addonId = info.id;
+            this.addonVersion = info.version;
+          })
+          .catch((err) => {
+            this.$store.commit(MUTATIONS.SET_ERROR, err);
+          })
+          .then(() => {
+            this.loading = false;
+          });
+      }
+    }
   },
   computed: {
     ...mapState(['destinationRepos']),
@@ -91,18 +93,6 @@ export default Vue.extend({
     }
   },
   methods: {
-    async onDirectorySelected(event: any) {
-      this.$store.commit(MUTATIONS.CLEAR_ERROR);
-      try {
-        const files = loadDirectory(event.target.files);
-        const info = await readAddonInfo(files);
-        this.addonId = info.id;
-        this.addonVersion = info.version;
-        this.files = files;
-      } catch (err) {
-        this.$store.commit(MUTATIONS.SET_ERROR, err);
-      }
-    },
     onRepoSelected(repo: string) {
       this.branch = null;
       this.branches = []

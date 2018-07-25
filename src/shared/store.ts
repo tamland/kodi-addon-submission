@@ -18,8 +18,10 @@ export enum MUTATIONS {
 export enum ACTIONS {
   LOGIN = "LOGIN",
   REQUEST_TOKEN = "REQUEST_TOKEN",
+  FETCH_MY_REPOS = "FETCH_MY_REPOS",
   FETCH_BRANCH_INFO = "FETCH_BRANCH_INFO",
   PUSH = "PUSH",
+  FETCH_REPO_INFO = "FETCH_REPO_INFO",
 }
 
 export interface Branch {
@@ -98,6 +100,34 @@ const actions = {
         });
       });
       context.commit(MUTATIONS.SET_TOKEN, token);
+    } catch (err) {
+      context.commit(MUTATIONS.SET_ERROR, err);
+      throw err;
+    }
+  },
+
+  async [ACTIONS.FETCH_MY_REPOS](context: Context) {
+    try {
+      const response = await context.state.octo.user.repos.fetch({per_page: 100});
+      return response.items;
+    } catch (err) {
+      context.commit(MUTATIONS.SET_ERROR, err);
+      throw err;
+    }
+  },
+
+  async [ACTIONS.FETCH_REPO_INFO](context: Context, fullRepoName: string) {
+    try {
+      const [user, repo] = fullRepoName.split('/')
+      const ref = await context.state.octo.repos(user, repo).git.refs.heads('master').fetch();
+      const sha = ref.object.sha;
+      const tree = await context.state.octo.repos(user, repo).git.trees(sha).fetch({recursive: 1});
+      return tree.tree
+        .filter((obj) => obj.type === 'blob')
+        .map((obj) => ({
+          path: obj.path,
+          read: () => context.state.octo.repos(user, repo).git.blobs(obj.sha).fetch().then(r => r.content),
+        }));
     } catch (err) {
       context.commit(MUTATIONS.SET_ERROR, err);
       throw err;
