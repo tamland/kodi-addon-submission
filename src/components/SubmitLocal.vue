@@ -1,9 +1,9 @@
 <template>
   <div>
     <b-field label="Upload add-on files">
-      <div class="file">
+      <div class="file is-primary">
         <label class="file-label">
-          <input type="file" class="file-input" 
+          <input type="file" class="file-input"
               @change="onDirectorySelected($event)"
               multiple directory webkitdirectory mozdirectory>
           <span class="file-cta">
