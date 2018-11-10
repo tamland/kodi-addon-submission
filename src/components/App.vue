@@ -38,7 +38,7 @@
 </template>
 <style lang="scss">
   @import '~material-design-icons/iconfont/material-icons.css';
-  @import '~buefy/lib/buefy.css';
+  @import '~buefy/dist/buefy.css';
 
   #app {
     display: flex;
