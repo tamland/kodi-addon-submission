@@ -4,8 +4,8 @@
       <nav v-if="isLoggedIn" class="navbar has-shadow">
         <div class="container">
           <div class="navbar-start">
-            <router-link :to="{name: 'submit-local'}" class="navbar-item">Local</router-link>
             <router-link :to="{name: 'repo-list'}" class="navbar-item">Repositories</router-link>
+            <router-link :to="{name: 'upload'}" class="navbar-item">Upload</router-link>
           </div>
           <div class="navbar-end">
             <div class="navbar-item">

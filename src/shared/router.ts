@@ -6,8 +6,8 @@ import SubmitGithub from '@/components/SubmitGithub.vue';
 const routes = [
   {
     path: '/',
-    name: 'submit-local',
-    component: SubmitLocal
+    name: 'repo-list',
+    component: RepoList
   },
   {
     path: '/repos/:repo',
@@ -16,9 +16,9 @@ const routes = [
     props: true,
   },
   {
-    path: '/repos',
-    name: 'repo-list',
-    component: RepoList
+    path: '/upload',
+    name: 'upload',
+    component: SubmitLocal
   },
 ]
 
